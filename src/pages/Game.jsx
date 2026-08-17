@@ -308,10 +308,6 @@ const LEVELS = [
   },
 ];
 
-// 1-based. Set to 2 or 3 to jump into that level for testing; 1 = normal start.
-const DEBUG_START_LEVEL = 3;
-const START_LEVEL_INDEX = Math.max(0, Math.min(LEVELS.length - 1, DEBUG_START_LEVEL - 1));
-
 function makeLevelState(levelIndex, extras = {}) {
   const L = LEVELS[levelIndex];
   return {
@@ -342,22 +338,40 @@ export default function Game() {
   const canvasRef = useRef(null);
   const keysRef = useRef({});
   const rafRef = useRef(0);
-  const [hud, setHud] = useState({ rings: 0, stars: 0, lives: 3, score: 0, level: START_LEVEL_INDEX + 1 });
-  const [status, setStatus] = useState("playing"); // playing | won | lost
-  const statusRef = useRef("playing");
-  const levelRef = useRef(START_LEVEL_INDEX);
+  const [hud, setHud] = useState({ rings: 0, stars: 0, lives: 3, score: 0, level: 1 });
+  const [status, setStatus] = useState("menu"); // menu | playing | won | lost
+  const statusRef = useRef("menu");
+  const levelRef = useRef(0);
   const [bestScore, setBestScore] = useState(() => {
     try { return Number(localStorage.getItem("sonic_best") || 0); } catch { return 0; }
   });
 
   // game state in a ref (avoid re-renders each frame)
-  const stateRef = useRef(makeLevelState(START_LEVEL_INDEX));
+  const stateRef = useRef(makeLevelState(0));
+
+  const startLevel = useCallback((levelIndex) => {
+    const idx = Math.max(0, Math.min(LEVELS.length - 1, levelIndex));
+    keysRef.current = {};
+    levelRef.current = idx;
+    stateRef.current = makeLevelState(idx);
+    setHud({ rings: 0, stars: 0, lives: 3, score: 0, level: idx + 1 });
+    statusRef.current = "playing";
+    setStatus("playing");
+  }, []);
+  const startLevelRef = useRef(startLevel);
+  startLevelRef.current = startLevel;
 
   // ---------------------------------------------------------------- input ---
   useEffect(() => {
     const down = (e) => {
       unlockAudio();
       const k = e.key.toLowerCase();
+      if (statusRef.current === "menu") {
+        if (k === "1" || k === "2" || k === "3") {
+          startLevelRef.current(Number(k) - 1);
+        }
+        return;
+      }
       keysRef.current[k] = true;
       if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(k)) e.preventDefault();
     };
@@ -371,11 +385,16 @@ export default function Game() {
   }, []);
 
   const resetGame = useCallback(() => {
-    levelRef.current = START_LEVEL_INDEX;
-    stateRef.current = makeLevelState(START_LEVEL_INDEX);
-    setHud({ rings: 0, stars: 0, lives: 3, score: 0, level: START_LEVEL_INDEX + 1 });
-    statusRef.current = "playing";
-    setStatus("playing");
+    startLevel(levelRef.current);
+  }, [startLevel]);
+
+  const goToMenu = useCallback(() => {
+    keysRef.current = {};
+    levelRef.current = 0;
+    stateRef.current = makeLevelState(0);
+    setHud({ rings: 0, stars: 0, lives: 3, score: 0, level: 1 });
+    statusRef.current = "menu";
+    setStatus("menu");
   }, []);
 
   const startNextLevel = useCallback(() => {
@@ -891,7 +910,7 @@ export default function Game() {
 
   // track analytics on win/lose
   useEffect(() => {
-    if (status !== "playing") {
+    if (status === "won" || status === "lost") {
       try { base44.analytics.track({ eventName: "sonic_level_end", properties: { result: status, level: levelRef.current + 1 } }); } catch {}
     }
   }, [status]);
@@ -907,7 +926,7 @@ export default function Game() {
         </div>
 
         {/* HUD */}
-        <div className="flex flex-wrap items-center gap-4 mb-3 text-white">
+        <div className={`flex flex-wrap items-center gap-4 mb-3 text-white ${status === "menu" ? "invisible" : ""}`}>
           <Badge label="Level" value={hud.level} color="text-sky-400" />
           <Badge label="Rings" value={hud.rings} color="text-amber-400" icon="ring" />
           <Badge label="Stars" value={hud.stars} color="text-orange-400" icon="star" />
@@ -923,12 +942,39 @@ export default function Game() {
             className="block max-w-full max-h-full w-auto h-auto"
             style={{ imageRendering: "pixelated" }}
           />
-          <TouchControls
-            setKey={(k, v) => { if (v) unlockAudio(); keysRef.current[k] = v; }}
-          />
+          {status === "playing" && (
+            <TouchControls
+              setKey={(k, v) => { if (v) unlockAudio(); keysRef.current[k] = v; }}
+            />
+          )}
 
-          {/* Start / End overlay */}
-          {status !== "playing" && (
+          {status === "menu" && (
+            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white text-center px-4">
+              <h2 className="text-4xl font-extrabold mb-1 tracking-tight">
+                <span className="text-blue-400">Velocity</span> Dash
+              </h2>
+              <p className="text-slate-300 mb-6">Choose a level</p>
+              <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xl">
+                {LEVELS.map((L, i) => (
+                  <button
+                    key={L.name}
+                    onClick={() => { unlockAudio(); startLevel(i); }}
+                    className="flex-1 px-4 py-4 rounded-xl font-bold border-2 border-white/20 hover:border-white/70 hover:scale-[1.03] transition-all shadow-lg"
+                    style={{
+                      background: `linear-gradient(160deg, ${L.theme.sky[0]}, ${L.theme.sky[1]})`,
+                    }}
+                  >
+                    <div className="text-xs uppercase tracking-wide text-white/80">Level {i + 1}</div>
+                    <div className="text-lg mt-1">{L.name}</div>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-4 text-xs text-slate-400 hidden md:block">Press 1, 2, or 3</p>
+            </div>
+          )}
+
+          {/* End overlay */}
+          {(status === "won" || status === "lost") && (
             <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white text-center">
               <h2 className={`text-4xl font-extrabold mb-2 ${status === "won" ? "text-emerald-400" : "text-red-500"}`}>
                 {status === "won"
@@ -953,6 +999,12 @@ export default function Game() {
                   className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition-colors"
                 >
                   Play Again
+                </button>
+                <button
+                  onClick={goToMenu}
+                  className="px-6 py-2.5 bg-slate-600 hover:bg-slate-500 rounded-lg font-bold transition-colors"
+                >
+                  Level Select
                 </button>
               </div>
             </div>

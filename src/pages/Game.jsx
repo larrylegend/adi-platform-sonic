@@ -451,8 +451,8 @@ export default function Game() {
       const keys = keysRef.current;
 
       const ACC = 0.65, MAX_RUN = 8.5, FRICTION = 0.85, JUMP = 16.5;
-      const SPRING = 27.4; // ~1.3x the old spring height (v 24 → height scales with v²)
-      const SPRING_JUMP = 31;
+      const SPRING = 26.3; // ~1.2x the old spring height (v 24 → height scales with v²)
+      const SPRING_JUMP = 29.5;
 
       // horizontal
       if (keys["arrowleft"] || keys["a"]) { p.vx -= ACC; p.facing = -1; }

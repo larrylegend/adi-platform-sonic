@@ -685,6 +685,7 @@ export default function Game() {
     const winGame = (s) => {
       statusRef.current = "won";
       setStatus("won");
+      sfx.levelComplete();
       s.score += 1000;
       setHud((h) => {
         const finalScore = h.score + 1000;

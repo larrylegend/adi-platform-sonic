@@ -4,6 +4,26 @@
 let ctx = null;
 let master = null;
 let wiredUnlock = false;
+let liveNodes = [];
+
+function trackNode(node) {
+  liveNodes.push(node);
+  node.addEventListener("ended", () => {
+    liveNodes = liveNodes.filter((n) => n !== node);
+  });
+}
+
+function dropQueued() {
+  for (const node of liveNodes) {
+    try { node.stop(); } catch { /* already stopped */ }
+    try { node.disconnect(); } catch { /* already disconnected */ }
+  }
+  liveNodes = [];
+}
+
+function isRunning(c) {
+  return !!c && c.state === "running";
+}
 
 function wireUnlockListeners() {
   if (wiredUnlock || typeof window === "undefined") return;
@@ -26,12 +46,15 @@ function ensure() {
     master.gain.value = 0.35;
     master.connect(ctx.destination);
     ctx.addEventListener("statechange", () => {
-      if (ctx && (ctx.state === "suspended" || ctx.state === "interrupted")) {
+      if (!ctx) return;
+      if (ctx.state === "suspended" || ctx.state === "interrupted") {
+        dropQueued();
         ctx.resume().catch(() => {});
       }
     });
   }
   if (ctx.state === "suspended" || ctx.state === "interrupted") {
+    dropQueued();
     ctx.resume().catch(() => {});
   }
   return ctx;
@@ -45,7 +68,7 @@ export function unlockAudio() {
 
 function tone(opts) {
   const c = ensure();
-  if (!c) return;
+  if (!isRunning(c)) return;
   try {
     const { from, to, dur, type = "square", vol = 0.3, delay = 0, attack = 0.005 } = opts;
     const t0 = c.currentTime + delay;
@@ -60,6 +83,7 @@ function tone(opts) {
     osc.connect(gain).connect(master);
     osc.start(t0);
     osc.stop(t0 + dur + 0.02);
+    trackNode(osc);
   } catch {
     // A bad schedule must not kill the game loop or mute later sounds.
   }
@@ -67,7 +91,7 @@ function tone(opts) {
 
 function noise(opts) {
   const c = ensure();
-  if (!c) return;
+  if (!isRunning(c)) return;
   try {
     const { dur, vol = 0.3, delay = 0, filterFreq = 1000, type = "lowpass" } = opts;
     const t0 = c.currentTime + delay;
@@ -85,6 +109,7 @@ function noise(opts) {
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
     src.connect(filt).connect(gain).connect(master);
     src.start(t0);
+    trackNode(src);
   } catch {
     // A bad schedule must not kill the game loop or mute later sounds.
   }

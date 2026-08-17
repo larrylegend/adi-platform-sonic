@@ -170,10 +170,10 @@ const LEVELS = [
       { x: 3520, y: 460, w: 50, h: 20, type: "spike" },
       { x: 4220, y: 460, w: 50, h: 20, type: "spike" },
       { x: 5080, y: 460, w: 60, h: 20, type: "spike" },
-      { x: 480, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 420, y: 462, w: 60, h: 18, type: "spring" },
       { x: 1680, y: 462, w: 60, h: 18, type: "spring" },
       { x: 2380, y: 462, w: 60, h: 18, type: "spring" },
-      { x: 3140, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 3110, y: 462, w: 60, h: 18, type: "spring" },
       { x: 4580, y: 462, w: 60, h: 18, type: "spring" },
       { x: 5480, y: 360, w: 30, h: 120, type: "goal" },
     ],
@@ -271,12 +271,12 @@ const LEVELS = [
       { x: 3410, y: 460, w: 50, h: 20, type: "spike" },
       { x: 4170, y: 460, w: 50, h: 20, type: "spike" },
       { x: 5300, y: 460, w: 60, h: 20, type: "spike" },
-      { x: 380, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 350, y: 462, w: 60, h: 18, type: "spring" },
       { x: 1580, y: 462, w: 60, h: 18, type: "spring" },
       { x: 2280, y: 462, w: 60, h: 18, type: "spring" },
-      { x: 3000, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 2970, y: 462, w: 60, h: 18, type: "spring" },
       { x: 3780, y: 462, w: 60, h: 18, type: "spring" },
-      { x: 4680, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 4520, y: 462, w: 60, h: 18, type: "spring" },
       { x: 5880, y: 360, w: 30, h: 120, type: "goal" },
     ],
     rings: makeRings([
@@ -318,7 +318,7 @@ function makeLevelState(levelIndex, extras = {}) {
     player: {
       x: 80, y: 420, w: 34, h: 40,
       vx: 0, vy: 0, onGround: false, facing: 1,
-      rolling: false, invuln: 0, spin: 0,
+      rolling: false, invuln: 0, spin: 0, springing: false,
     },
     rings: L.rings.map((r) => ({ ...r, taken: false })),
     stars: L.stars.map((st) => ({ ...st, taken: false })),
@@ -451,6 +451,8 @@ export default function Game() {
       const keys = keysRef.current;
 
       const ACC = 0.65, MAX_RUN = 8.5, FRICTION = 0.85, JUMP = 16.5;
+      const SPRING = 27.4; // ~1.3x the old spring height (v 24 → height scales with v²)
+      const SPRING_JUMP = 31;
 
       // horizontal
       if (keys["arrowleft"] || keys["a"]) { p.vx -= ACC; p.facing = -1; }
@@ -477,7 +479,8 @@ export default function Game() {
       if (p.vy > MAX_FALL) p.vy = MAX_FALL;
       // variable jump height — release early for a short hop (easier control)
       const jumpHeld = keys["arrowup"] || keys["w"] || keys[" "];
-      if (p.vy < 0 && !jumpHeld) p.vy *= 0.86;
+      if (p.vy < 0 && !jumpHeld && !p.springing) p.vy *= 0.86;
+      if (p.vy >= 0) p.springing = false;
 
       // move + collide axis-separated
       p.x += p.vx;
@@ -504,8 +507,9 @@ export default function Game() {
             p.onGround = true;
             if (pl.type === "spike") { sfx.spike(); hurtPlayer(s, 1, pl); }
             if (pl.type === "spring") {
-              p.vy = -24;
+              p.vy = jumpHeld ? -SPRING_JUMP : -SPRING;
               p.onGround = false;
+              p.springing = true;
               sfx.spring();
               spawnParticles(pl.x + pl.w / 2, pl.y, "#fde047", 10);
             }

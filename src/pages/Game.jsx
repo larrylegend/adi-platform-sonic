@@ -309,7 +309,7 @@ const LEVELS = [
 ];
 
 // 1-based. Set to 2 or 3 to jump into that level for testing; 1 = normal start.
-const DEBUG_START_LEVEL = 2;
+const DEBUG_START_LEVEL = 3;
 const START_LEVEL_INDEX = Math.max(0, Math.min(LEVELS.length - 1, DEBUG_START_LEVEL - 1));
 
 function makeLevelState(levelIndex, extras = {}) {

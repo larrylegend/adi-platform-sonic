@@ -122,9 +122,7 @@ const LEVELS = [
       dirt: "#115e59",
       platform: "#3f6212",
       platformTop: "#a3e635",
-      leaf: "#fb923c",
-      vineDark: "#365314",
-      platformStyle: "vine",
+      platformStyle: "flat",
     },
     eggman: {
       startX: 500,
@@ -1038,9 +1036,10 @@ function drawFloatingPlatform(ctx, pl, theme) {
   for (let i = 0; i < w; i += 16) {
     ctx.beginPath();
     ctx.moveTo(x + i, y + h);
-    ctx.quadraticCurveTo(x + i + 8, y - 1, x + i + 16, y + h);
+    ctx.quadraticCurveTo(x + i + 8, y + 4, x + i + 16, y + h);
     ctx.stroke();
   }
+  if (theme.platformStyle !== "vine") return;
   ctx.strokeStyle = theme.platform;
   ctx.lineWidth = 2.5;
   for (let i = 12; i < w; i += 30) {

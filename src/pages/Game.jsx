@@ -43,7 +43,7 @@ const PLATFORMS = [
   { x: 4540, y: 370, w: 140, h: 18, type: "platform" },
 
   // spikes (hazard) placed on ground
-  { x: 940, y: 460, w: 40, h: 20, type: "spike" },
+  { x: 880, y: 460, w: 40, h: 20, type: "spike" },
   { x: 1680, y: 460, w: 40, h: 20, type: "spike" },
   { x: 2360, y: 460, w: 50, h: 20, type: "spike" },
   { x: 3760, y: 460, w: 60, h: 20, type: "spike" },
@@ -97,13 +97,15 @@ const STAR_DEFS = [
 
 // Eggman boss — flies in a sine pattern, drops bombs
 const EGGMAN = {
-  activeFrom: 700, // appears soon after the level starts
-  startX: 1150,
+  startX: 520, // visible on the first screen, to the right of the player
   baseY: 320,
   amp: 60,
   speed: 0.0022,
   bombCooldown: 1700,
   hp: 6,
+  patrolLeft: 400,
+  patrolOmega: 0.00007,
+  weave: 180,
 };
 
 // ---------------------------------------------------------------------------
@@ -356,12 +358,19 @@ export default function Game() {
         }
       }
 
-      // Eggman
+      // Eggman — always update while alive so hits still work if the player goes back
       const e = s.eggman;
-      if (e.alive && p.x > EGGMAN.activeFrom) {
+      if (e.alive) {
         e.t += dt;
-        e.x = EGGMAN.startX + Math.sin(e.t * 0.0006) * 200 + (p.x - EGGMAN.activeFrom) * 0.3;
-        e.x = Math.max(EGGMAN.startX - 100, Math.min(WORLD_W - 80, e.x));
+        const left = EGGMAN.patrolLeft;
+        const right = WORLD_W - e.w - 20;
+        const mid = (left + right) / 2;
+        const range = (right - left) / 2;
+        const startPhase = Math.asin(Math.max(-1, Math.min(1, (EGGMAN.startX - mid) / range)));
+        e.x = mid
+          + Math.sin(e.t * EGGMAN.patrolOmega + startPhase) * range
+          + Math.sin(e.t * 0.0006) * EGGMAN.weave;
+        e.x = Math.max(left, Math.min(right, e.x));
         e.y = EGGMAN.baseY + Math.sin(e.t * EGGMAN.speed) * EGGMAN.amp;
         if (e.hitFlash > 0) e.hitFlash -= dt;
 

@@ -3,6 +3,19 @@
 
 let ctx = null;
 let master = null;
+let wiredUnlock = false;
+
+function wireUnlockListeners() {
+  if (wiredUnlock || typeof window === "undefined") return;
+  wiredUnlock = true;
+  const unlock = () => { ensure(); };
+  window.addEventListener("pointerdown", unlock, { passive: true });
+  window.addEventListener("keydown", unlock, { passive: true });
+  window.addEventListener("touchstart", unlock, { passive: true });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") ensure();
+  });
+}
 
 function ensure() {
   if (!ctx) {
@@ -12,51 +25,69 @@ function ensure() {
     master = ctx.createGain();
     master.gain.value = 0.35;
     master.connect(ctx.destination);
+    ctx.addEventListener("statechange", () => {
+      if (ctx && (ctx.state === "suspended" || ctx.state === "interrupted")) {
+        ctx.resume().catch(() => {});
+      }
+    });
   }
-  if (ctx.state === "suspended") ctx.resume();
+  if (ctx.state === "suspended" || ctx.state === "interrupted") {
+    ctx.resume().catch(() => {});
+  }
   return ctx;
 }
 
 // Resume audio on the first key press (user gesture).
-export function unlockAudio() { ensure(); }
+export function unlockAudio() {
+  wireUnlockListeners();
+  ensure();
+}
 
 function tone(opts) {
   const c = ensure();
   if (!c) return;
-  const { from, to, dur, type = "square", vol = 0.3, delay = 0, attack = 0.005 } = opts;
-  const t0 = c.currentTime + delay;
-  const osc = c.createOscillator();
-  const gain = c.createGain();
-  osc.type = type;
-  osc.frequency.setValueAtTime(from, t0);
-  if (to) osc.frequency.exponentialRampToValueAtTime(Math.max(1, to), t0 + dur);
-  gain.gain.setValueAtTime(0.0001, t0);
-  gain.gain.exponentialRampToValueAtTime(vol, t0 + attack);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  osc.connect(gain).connect(master);
-  osc.start(t0);
-  osc.stop(t0 + dur + 0.02);
+  try {
+    const { from, to, dur, type = "square", vol = 0.3, delay = 0, attack = 0.005 } = opts;
+    const t0 = c.currentTime + delay;
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(from, t0);
+    if (to) osc.frequency.exponentialRampToValueAtTime(Math.max(1, to), t0 + dur);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(vol, t0 + attack);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain).connect(master);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  } catch {
+    // A bad schedule must not kill the game loop or mute later sounds.
+  }
 }
 
 function noise(opts) {
   const c = ensure();
   if (!c) return;
-  const { dur, vol = 0.3, delay = 0, filterFreq = 1000, type = "lowpass" } = opts;
-  const t0 = c.currentTime + delay;
-  const len = Math.floor(c.sampleRate * dur);
-  const buf = c.createBuffer(1, len, c.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
-  const src = c.createBufferSource();
-  src.buffer = buf;
-  const filt = c.createBiquadFilter();
-  filt.type = type;
-  filt.frequency.value = filterFreq;
-  const gain = c.createGain();
-  gain.gain.setValueAtTime(vol, t0);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  src.connect(filt).connect(gain).connect(master);
-  src.start(t0);
+  try {
+    const { dur, vol = 0.3, delay = 0, filterFreq = 1000, type = "lowpass" } = opts;
+    const t0 = c.currentTime + delay;
+    const len = Math.floor(c.sampleRate * dur);
+    const buf = c.createBuffer(1, len, c.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = c.createBufferSource();
+    src.buffer = buf;
+    const filt = c.createBiquadFilter();
+    filt.type = type;
+    filt.frequency.value = filterFreq;
+    const gain = c.createGain();
+    gain.gain.setValueAtTime(vol, t0);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(filt).connect(gain).connect(master);
+    src.start(t0);
+  } catch {
+    // A bad schedule must not kill the game loop or mute later sounds.
+  }
 }
 
 const sfx = {

@@ -88,6 +88,19 @@ const sfx = {
     tone({ from: 220, to: 660, dur: 0.12, type: "square", vol: 0.28 });
     noise({ dur: 0.15, vol: 0.25, filterFreq: 2200, type: "highpass", delay: 0.02 });
   },
+  defeatEggman() {
+    const melody = [523, 659, 784, 1047, 784, 1047, 1175, 1319, 1568];
+    melody.forEach((f, i) => {
+      const last = i === melody.length - 1;
+      tone({ from: f, dur: last ? 0.6 : 0.15, type: "square", vol: 0.34, delay: i * 0.11 });
+      tone({ from: f / 2, dur: last ? 0.55 : 0.14, type: "triangle", vol: 0.16, delay: i * 0.11 });
+    });
+    [0.15, 0.4, 0.65, 0.9].forEach((d) => {
+      tone({ from: 1760, to: 2340, dur: 0.14, type: "sine", vol: 0.12, delay: d });
+    });
+    tone({ from: 160, to: 70, dur: 0.45, type: "sine", vol: 0.24 });
+    noise({ dur: 0.2, vol: 0.18, filterFreq: 2800, type: "highpass", delay: 0.02 });
+  },
   explosion() {
     // deep low boom
     tone({ from: 140, to: 38, dur: 0.6, type: "sine", vol: 0.4 });

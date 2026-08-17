@@ -4,7 +4,7 @@ import sfx, { unlockAudio } from "@/lib/sfx";
 import TouchControls from "@/components/game/TouchControls";
 
 // ---------------------------------------------------------------------------
-// Sonic-style platformer — two levels
+// Sonic-style platformer — three levels
 // Pure canvas + requestAnimationFrame, no external assets.
 // ---------------------------------------------------------------------------
 
@@ -32,8 +32,11 @@ const LEVELS = [
       ground: "#15803d",
       grass: "#22c55e",
       dirt: "#166534",
-      platform: "#a16207",
-      platformTop: "#facc15",
+      platform: "#166534",
+      platformTop: "#4ade80",
+      leaf: "#86efac",
+      vineDark: "#14532d",
+      platformStyle: "vine",
     },
     eggman: {
       startX: 520,
@@ -117,8 +120,11 @@ const LEVELS = [
       ground: "#0f766e",
       grass: "#2dd4bf",
       dirt: "#115e59",
-      platform: "#9a3412",
-      platformTop: "#fb923c",
+      platform: "#3f6212",
+      platformTop: "#a3e635",
+      leaf: "#fb923c",
+      vineDark: "#365314",
+      platformStyle: "vine",
     },
     eggman: {
       startX: 500,
@@ -126,7 +132,7 @@ const LEVELS = [
       amp: 70,
       speed: 0.0026,
       bombCooldown: 1300,
-      hp: 8,
+      hp: 3,
       patrolLeft: 380,
       patrolOmega: 0.000075,
       weave: 160,
@@ -199,6 +205,107 @@ const LEVELS = [
       { x: 3220, y: 140 },
       { x: 3680, y: 180 },
       { x: 5400, y: 400 },
+    ],
+  },
+  {
+    name: "Ice Cap",
+    worldW: 6000,
+    theme: {
+      sky: ["#0c4a6e", "#38bdf8", "#e0f2fe"],
+      cloud: "rgba(255,255,255,0.85)",
+      hill: "rgba(186,230,253,0.5)",
+      ground: "#64748b",
+      grass: "#f8fafc",
+      dirt: "#475569",
+      platform: "#7dd3fc",
+      platformTop: "#f8fafc",
+      ice: "#bae6fd",
+      platformStyle: "snow",
+      weather: "snow",
+    },
+    eggman: {
+      startX: 480,
+      baseY: 290,
+      amp: 80,
+      speed: 0.0028,
+      bombCooldown: 1100,
+      hp: 3,
+      patrolLeft: 360,
+      patrolOmega: 0.00008,
+      weave: 150,
+      hat: "winter",
+    },
+    platforms: [
+      { x: 0, y: 480, w: 640, h: 60, type: "ground" },
+      { x: 780, y: 480, w: 500, h: 60, type: "ground" },
+      { x: 1460, y: 480, w: 520, h: 60, type: "ground" },
+      { x: 2140, y: 480, w: 540, h: 60, type: "ground" },
+      { x: 2880, y: 480, w: 600, h: 60, type: "ground" },
+      { x: 3660, y: 480, w: 580, h: 60, type: "ground" },
+      { x: 4420, y: 480, w: 1580, h: 60, type: "ground" },
+      { x: 220, y: 380, w: 110, h: 18, type: "platform" },
+      { x: 420, y: 290, w: 110, h: 18, type: "platform" },
+      { x: 580, y: 200, w: 100, h: 18, type: "platform" },
+      { x: 700, y: 330, w: 130, h: 18, type: "platform" },
+      { x: 980, y: 250, w: 120, h: 18, type: "platform" },
+      { x: 1220, y: 200, w: 110, h: 18, type: "platform" },
+      { x: 1360, y: 310, w: 130, h: 18, type: "platform" },
+      { x: 1680, y: 230, w: 120, h: 18, type: "platform" },
+      { x: 1920, y: 350, w: 120, h: 18, type: "platform" },
+      { x: 2060, y: 250, w: 120, h: 18, type: "platform" },
+      { x: 2360, y: 180, w: 110, h: 18, type: "platform" },
+      { x: 2600, y: 320, w: 130, h: 18, type: "platform" },
+      { x: 2760, y: 220, w: 120, h: 18, type: "platform" },
+      { x: 3040, y: 160, w: 110, h: 18, type: "platform" },
+      { x: 3320, y: 280, w: 130, h: 18, type: "platform" },
+      { x: 3540, y: 200, w: 120, h: 18, type: "platform" },
+      { x: 3880, y: 340, w: 130, h: 18, type: "platform" },
+      { x: 4100, y: 240, w: 120, h: 18, type: "platform" },
+      { x: 4300, y: 300, w: 130, h: 18, type: "platform" },
+      { x: 4600, y: 260, w: 120, h: 18, type: "platform" },
+      { x: 4900, y: 340, w: 130, h: 18, type: "platform" },
+      { x: 5200, y: 280, w: 120, h: 18, type: "platform" },
+      { x: 5500, y: 360, w: 130, h: 18, type: "platform" },
+      { x: 580, y: 460, w: 40, h: 20, type: "spike" },
+      { x: 1210, y: 460, w: 50, h: 20, type: "spike" },
+      { x: 1910, y: 460, w: 50, h: 20, type: "spike" },
+      { x: 2610, y: 460, w: 50, h: 20, type: "spike" },
+      { x: 3410, y: 460, w: 50, h: 20, type: "spike" },
+      { x: 4170, y: 460, w: 50, h: 20, type: "spike" },
+      { x: 5300, y: 460, w: 60, h: 20, type: "spike" },
+      { x: 380, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 1580, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 2280, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 3000, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 3780, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 4680, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 5880, y: 360, w: 30, h: 120, type: "goal" },
+    ],
+    rings: makeRings([
+      [240, 340, 5],
+      [440, 250, 5],
+      [680, 300, 5, 30],
+      [1000, 210, 4],
+      [1340, 270, 5, 30],
+      [1700, 190, 4],
+      [2040, 220, 5, 30],
+      [2380, 140, 4],
+      [2740, 190, 5, 30],
+      [3060, 120, 4],
+      [3520, 170, 5, 30],
+      [3900, 300, 4],
+      [4280, 260, 5, 30],
+      [4620, 220, 4],
+      [5520, 430, 8, 26],
+    ]),
+    stars: [
+      { x: 600, y: 160 },
+      { x: 1240, y: 160 },
+      { x: 2380, y: 140 },
+      { x: 3060, y: 120 },
+      { x: 3560, y: 160 },
+      { x: 5220, y: 240 },
+      { x: 5750, y: 400 },
     ],
   },
 ];
@@ -517,7 +624,10 @@ export default function Game() {
               e.alive = false;
               s.score += 500;
               setHud((h) => ({ ...h, score: s.score }));
+              sfx.defeatEggman();
               spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#f87171", 30);
+              spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#fde047", 22);
+              spawnParticles(e.x + e.w / 2, e.y + e.h / 2, "#38bdf8", 16);
             }
           } else {
             // touched him from the side / on the ground -> take damage
@@ -621,6 +731,17 @@ export default function Game() {
         ctx.fill();
       }
 
+      if (theme.weather === "snow") {
+        ctx.fillStyle = "rgba(255,255,255,0.9)";
+        for (let i = 0; i < 42; i++) {
+          const sx = ((i * 97 + s.time * 0.05 + s.cam * 0.15) % (VIEW_W + 40)) - 20;
+          const sy = ((i * 53 + s.time * 0.09) % (VIEW_H + 20)) - 10;
+          ctx.beginPath();
+          ctx.arc(sx, sy, 1.4 + (i % 3) * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
       ctx.save();
       ctx.translate(-Math.round(s.cam), 0);
 
@@ -636,10 +757,7 @@ export default function Game() {
             ctx.fillRect(gx, pl.y + 10, 2, pl.h - 10);
           }
         } else if (pl.type === "platform") {
-          ctx.fillStyle = theme.platform;
-          ctx.fillRect(pl.x, pl.y, pl.w, pl.h);
-          ctx.fillStyle = theme.platformTop;
-          ctx.fillRect(pl.x, pl.y, pl.w, 5);
+          drawFloatingPlatform(ctx, pl, theme);
         } else if (pl.type === "spike") {
           ctx.fillStyle = "#475569";
           const spikes = Math.floor(pl.w / 16);
@@ -701,7 +819,7 @@ export default function Game() {
       // Eggman + bombs
       const e = s.eggman;
       if (e.alive) {
-        drawEggman(ctx, e.x, e.y, e.w, e.h, e.hitFlash > 0);
+        drawEggman(ctx, e.x, e.y, e.w, e.h, e.hitFlash > 0, L.eggman.hat);
         for (const b of e.bombs) {
           ctx.fillStyle = "#1f2937";
           ctx.beginPath();
@@ -869,6 +987,71 @@ function Key({ children }) {
 // ---------------------------------------------------------------------------
 // Canvas drawing helpers
 // ---------------------------------------------------------------------------
+function drawLeaf(ctx, x, y, dir, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(dir, 1);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(10, -7, 16, 2);
+  ctx.quadraticCurveTo(8, 6, 0, 0);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawFloatingPlatform(ctx, pl, theme) {
+  const { x, y, w, h } = pl;
+  if (theme.platformStyle === "snow") {
+    ctx.fillStyle = theme.platform;
+    ctx.beginPath();
+    ctx.moveTo(x + 4, y);
+    ctx.lineTo(x + w - 4, y);
+    ctx.quadraticCurveTo(x + w + 2, y + h / 2, x + w - 4, y + h);
+    ctx.lineTo(x + 4, y + h);
+    ctx.quadraticCurveTo(x - 2, y + h / 2, x + 4, y);
+    ctx.fill();
+    ctx.fillStyle = theme.platformTop;
+    ctx.fillRect(x + 2, y, w - 4, 6);
+    ctx.fillStyle = theme.ice || "#bae6fd";
+    for (let i = 8; i < w - 6; i += 16) {
+      ctx.beginPath();
+      ctx.moveTo(x + i, y + h);
+      ctx.lineTo(x + i + 3, y + h + 10);
+      ctx.lineTo(x + i + 6, y + h);
+      ctx.closePath();
+      ctx.fill();
+    }
+    return;
+  }
+
+  ctx.fillStyle = theme.platform;
+  ctx.fillRect(x, y + 2, w, h - 2);
+  ctx.fillStyle = theme.platformTop;
+  ctx.fillRect(x, y, w, 6);
+  ctx.strokeStyle = theme.vineDark || "#14532d";
+  ctx.lineWidth = 2;
+  for (let i = 0; i < w; i += 16) {
+    ctx.beginPath();
+    ctx.moveTo(x + i, y + h);
+    ctx.quadraticCurveTo(x + i + 8, y - 1, x + i + 16, y + h);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = theme.platform;
+  ctx.lineWidth = 2.5;
+  for (let i = 12; i < w; i += 30) {
+    ctx.beginPath();
+    ctx.moveTo(x + i, y + h);
+    ctx.quadraticCurveTo(x + i + 7, y + h + 12, x + i - 3, y + h + 18);
+    ctx.stroke();
+  }
+  const leaf = theme.leaf || "#86efac";
+  for (let i = 8; i < w; i += 34) {
+    drawLeaf(ctx, x + i, y + h + 6, 1, leaf);
+    drawLeaf(ctx, x + i + 14, y - 1, -1, leaf);
+  }
+}
+
 function drawStar(ctx, cx, cy, spikes, outer, inner, fill, stroke) {
   let rot = (Math.PI / 2) * 3;
   const step = Math.PI / spikes;
@@ -957,7 +1140,7 @@ function drawPlayer(ctx, p, time) {
   ctx.restore();
 }
 
-function drawEggman(ctx, x, y, w, h, flash) {
+function drawEggman(ctx, x, y, w, h, flash, hat) {
   ctx.save();
   ctx.translate(x + w / 2, y + h / 2);
   if (flash) ctx.globalAlpha = 0.5;
@@ -997,6 +1180,25 @@ function drawEggman(ctx, x, y, w, h, flash) {
   // mustache
   ctx.fillStyle = "#92400e";
   ctx.fillRect(-8, -h / 2 + 10, 16, 3);
+
+  if (hat === "winter") {
+    const top = -h / 2 + 6;
+    ctx.fillStyle = "#1d4ed8";
+    ctx.beginPath();
+    ctx.moveTo(-13, top - 3);
+    ctx.quadraticCurveTo(-2, top - 24, 13, top - 4);
+    ctx.lineTo(12, top - 2);
+    ctx.quadraticCurveTo(0, top - 8, -12, top - 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#f8fafc";
+    ctx.beginPath();
+    ctx.ellipse(0, top - 3, 14, 4.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(8, top - 20, 4.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   // propeller underneath
   ctx.fillStyle = "#64748b";

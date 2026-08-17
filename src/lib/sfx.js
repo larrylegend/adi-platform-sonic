@@ -175,17 +175,19 @@ const sfx = {
     notes.forEach((f, i) => tone({ from: f, dur: 0.3, type: "triangle", vol: 0.3, delay: i * 0.22 }));
   },
   levelComplete() {
-    // ta-daaaa: two pickups, then a held major flourish
-    tone({ from: 784, dur: 0.1, type: "square", vol: 0.3 });
-    tone({ from: 988, dur: 0.1, type: "square", vol: 0.3, delay: 0.1 });
-    const chord = [523, 659, 784, 1047];
-    chord.forEach((f) => {
-      tone({ from: f, dur: 0.75, type: "square", vol: 0.22, delay: 0.22 });
-      tone({ from: f / 2, dur: 0.7, type: "triangle", vol: 0.14, delay: 0.22 });
+    // three rising C-major inversions, same chime spacing
+    const inversions = [
+      [523, 659, 784],   // C E G
+      [659, 784, 1047],  // E G C
+      [784, 1047, 1319], // G C E
+    ];
+    inversions.forEach((chord, i) => {
+      const delay = i * 0.28;
+      chord.forEach((f) => {
+        tone({ from: f, dur: 0.55, type: "sine", vol: 0.18, delay, attack: 0.002 });
+        tone({ from: f * 2, dur: 0.32, type: "sine", vol: 0.06, delay, attack: 0.002 });
+      });
     });
-    tone({ from: 1319, dur: 0.85, type: "sine", vol: 0.2, delay: 0.22 });
-    tone({ from: 1568, to: 2093, dur: 0.2, type: "sine", vol: 0.12, delay: 0.28 });
-    tone({ from: 1760, to: 2340, dur: 0.18, type: "sine", vol: 0.1, delay: 0.42 });
   },
 };
 

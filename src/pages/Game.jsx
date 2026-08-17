@@ -41,7 +41,7 @@ const LEVELS = [
       amp: 60,
       speed: 0.0022,
       bombCooldown: 1700,
-      hp: 6,
+      hp: 3,
       patrolLeft: 400,
       patrolOmega: 0.00007,
       weave: 180,

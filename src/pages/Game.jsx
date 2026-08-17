@@ -310,6 +310,10 @@ const LEVELS = [
   },
 ];
 
+// 1-based. Set to 2 or 3 to jump into that level for testing; 1 = normal start.
+const DEBUG_START_LEVEL = 2;
+const START_LEVEL_INDEX = Math.max(0, Math.min(LEVELS.length - 1, DEBUG_START_LEVEL - 1));
+
 function makeLevelState(levelIndex, extras = {}) {
   const L = LEVELS[levelIndex];
   return {
@@ -340,16 +344,16 @@ export default function Game() {
   const canvasRef = useRef(null);
   const keysRef = useRef({});
   const rafRef = useRef(0);
-  const [hud, setHud] = useState({ rings: 0, stars: 0, lives: 3, score: 0, level: 1 });
+  const [hud, setHud] = useState({ rings: 0, stars: 0, lives: 3, score: 0, level: START_LEVEL_INDEX + 1 });
   const [status, setStatus] = useState("playing"); // playing | won | lost
   const statusRef = useRef("playing");
-  const levelRef = useRef(0);
+  const levelRef = useRef(START_LEVEL_INDEX);
   const [bestScore, setBestScore] = useState(() => {
     try { return Number(localStorage.getItem("sonic_best") || 0); } catch { return 0; }
   });
 
   // game state in a ref (avoid re-renders each frame)
-  const stateRef = useRef(makeLevelState(0));
+  const stateRef = useRef(makeLevelState(START_LEVEL_INDEX));
 
   // ---------------------------------------------------------------- input ---
   useEffect(() => {
@@ -369,9 +373,9 @@ export default function Game() {
   }, []);
 
   const resetGame = useCallback(() => {
-    levelRef.current = 0;
-    stateRef.current = makeLevelState(0);
-    setHud({ rings: 0, stars: 0, lives: 3, score: 0, level: 1 });
+    levelRef.current = START_LEVEL_INDEX;
+    stateRef.current = makeLevelState(START_LEVEL_INDEX);
+    setHud({ rings: 0, stars: 0, lives: 3, score: 0, level: START_LEVEL_INDEX + 1 });
     statusRef.current = "playing";
     setStatus("playing");
   }, []);

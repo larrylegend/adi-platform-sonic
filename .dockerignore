@@ -1,0 +1,9 @@
+node_modules
+dist
+.git
+.cursor
+.vite
+*.md
+.env
+.env.*
+base44/.app.jsonc

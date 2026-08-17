@@ -4,109 +4,227 @@ import sfx, { unlockAudio } from "@/lib/sfx";
 import TouchControls from "@/components/game/TouchControls";
 
 // ---------------------------------------------------------------------------
-// Sonic-style platformer — single complex level
+// Sonic-style platformer — two levels
 // Pure canvas + requestAnimationFrame, no external assets.
 // ---------------------------------------------------------------------------
 
 const VIEW_W = 960;
 const VIEW_H = 540;
-const WORLD_W = 5200;
 const GRAVITY = 0.66;
 const MAX_FALL = 14;
 
-// ---- Level layout ----------------------------------------------------------
-// Each platform: {x, y, w, h, type}  type: ground|platform|spike|spring|goal
-const PLATFORMS = [
-  // ground segments (gaps in between = pits)
-  { x: 0, y: 480, w: 940, h: 60, type: "ground" },
-  { x: 1010, y: 480, w: 740, h: 60, type: "ground" },
-  { x: 1790, y: 480, w: 640, h: 60, type: "ground" },
-  { x: 2470, y: 480, w: 720, h: 60, type: "ground" },
-  { x: 3240, y: 480, w: 600, h: 60, type: "ground" },
-  { x: 3870, y: 480, w: 1330, h: 60, type: "ground" },
-
-  // floating platforms
-  { x: 320, y: 380, w: 120, h: 18, type: "platform" },
-  { x: 520, y: 300, w: 120, h: 18, type: "platform" },
-  { x: 760, y: 360, w: 120, h: 18, type: "platform" },
-  { x: 1100, y: 360, w: 170, h: 18, type: "platform" },
-  { x: 1320, y: 280, w: 140, h: 18, type: "platform" },
-  { x: 1560, y: 360, w: 120, h: 18, type: "platform" },
-  { x: 1980, y: 360, w: 160, h: 18, type: "platform" },
-  { x: 2200, y: 280, w: 120, h: 18, type: "platform" },
-  { x: 2680, y: 360, w: 170, h: 18, type: "platform" },
-  { x: 2900, y: 280, w: 140, h: 18, type: "platform" },
-  { x: 3420, y: 370, w: 170, h: 18, type: "platform" },
-  { x: 3640, y: 290, w: 140, h: 18, type: "platform" },
-  { x: 4080, y: 370, w: 170, h: 18, type: "platform" },
-  { x: 4300, y: 290, w: 140, h: 18, type: "platform" },
-  { x: 4540, y: 370, w: 140, h: 18, type: "platform" },
-
-  // spikes (hazard) placed on ground
-  { x: 880, y: 460, w: 40, h: 20, type: "spike" },
-  { x: 1680, y: 460, w: 40, h: 20, type: "spike" },
-  { x: 2360, y: 460, w: 50, h: 20, type: "spike" },
-  { x: 3760, y: 460, w: 60, h: 20, type: "spike" },
-
-  // springs (launch the player up)
-  { x: 660, y: 462, w: 60, h: 18, type: "spring" },
-  { x: 2480, y: 462, w: 60, h: 18, type: "spring" },
-  { x: 3880, y: 462, w: 60, h: 18, type: "spring" },
-
-  // goal ring at the end
-  { x: 5050, y: 360, w: 30, h: 120, type: "goal" },
-];
-
-// rings — placed along the level (arcs over pits, on platforms)
-const RING_DEFS = (() => {
+function makeRings(arcs) {
   const r = [];
-  const arc = (cx, cy, n, spread = 28) => {
+  for (const [cx, cy, n, spread = 28] of arcs) {
     for (let i = 0; i < n; i++) r.push({ x: cx + i * spread, y: cy });
-  };
-  arc(360, 340, 5);
-  arc(560, 260, 5);
-  arc(950, 360, 6, 30); // over spike
-  arc(1140, 320, 4);
-  arc(1340, 240, 4);
-  arc(1740, 340, 6, 30); // over spike
-  arc(2000, 320, 4);
-  arc(2220, 240, 4);
-  arc(2420, 340, 6, 30); // over spike
-  arc(2720, 320, 4);
-  arc(2920, 240, 4);
-  arc(3440, 330, 4);
-  arc(3660, 250, 4);
-  arc(3820, 340, 5, 30); // over spike
-  arc(4100, 330, 4);
-  arc(4320, 250, 4);
-  arc(4560, 330, 4);
-  arc(4800, 440, 8, 26);
+  }
   return r;
-})();
+}
 
-// stars — rare, high value
-const STAR_DEFS = [
-  { x: 580, y: 260 },
-  { x: 1360, y: 240 },
-  { x: 2240, y: 240 },
-  { x: 2940, y: 240 },
-  { x: 3680, y: 250 },
-  { x: 4340, y: 250 },
-  { x: 4900, y: 420 },
+const LEVELS = [
+  {
+    name: "Green Hill",
+    worldW: 5200,
+    theme: {
+      sky: ["#1e3a8a", "#3b82f6", "#93c5fd"],
+      cloud: "rgba(255,255,255,0.6)",
+      hill: "rgba(30,64,175,0.45)",
+      ground: "#15803d",
+      grass: "#22c55e",
+      dirt: "#166534",
+      platform: "#a16207",
+      platformTop: "#facc15",
+    },
+    eggman: {
+      startX: 520,
+      baseY: 320,
+      amp: 60,
+      speed: 0.0022,
+      bombCooldown: 1700,
+      hp: 6,
+      patrolLeft: 400,
+      patrolOmega: 0.00007,
+      weave: 180,
+    },
+    platforms: [
+      { x: 0, y: 480, w: 940, h: 60, type: "ground" },
+      { x: 1010, y: 480, w: 740, h: 60, type: "ground" },
+      { x: 1790, y: 480, w: 640, h: 60, type: "ground" },
+      { x: 2470, y: 480, w: 720, h: 60, type: "ground" },
+      { x: 3240, y: 480, w: 600, h: 60, type: "ground" },
+      { x: 3870, y: 480, w: 1330, h: 60, type: "ground" },
+      { x: 320, y: 380, w: 120, h: 18, type: "platform" },
+      { x: 520, y: 300, w: 120, h: 18, type: "platform" },
+      { x: 760, y: 360, w: 120, h: 18, type: "platform" },
+      { x: 1100, y: 360, w: 170, h: 18, type: "platform" },
+      { x: 1320, y: 280, w: 140, h: 18, type: "platform" },
+      { x: 1560, y: 360, w: 120, h: 18, type: "platform" },
+      { x: 1980, y: 360, w: 160, h: 18, type: "platform" },
+      { x: 2200, y: 280, w: 120, h: 18, type: "platform" },
+      { x: 2680, y: 360, w: 170, h: 18, type: "platform" },
+      { x: 2900, y: 280, w: 140, h: 18, type: "platform" },
+      { x: 3420, y: 370, w: 170, h: 18, type: "platform" },
+      { x: 3640, y: 290, w: 140, h: 18, type: "platform" },
+      { x: 4080, y: 370, w: 170, h: 18, type: "platform" },
+      { x: 4300, y: 290, w: 140, h: 18, type: "platform" },
+      { x: 4540, y: 370, w: 140, h: 18, type: "platform" },
+      { x: 880, y: 460, w: 40, h: 20, type: "spike" },
+      { x: 1680, y: 460, w: 40, h: 20, type: "spike" },
+      { x: 2360, y: 460, w: 50, h: 20, type: "spike" },
+      { x: 3760, y: 460, w: 60, h: 20, type: "spike" },
+      { x: 660, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 2480, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 3880, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 5050, y: 360, w: 30, h: 120, type: "goal" },
+    ],
+    rings: makeRings([
+      [360, 340, 5],
+      [560, 260, 5],
+      [950, 360, 6, 30],
+      [1140, 320, 4],
+      [1340, 240, 4],
+      [1740, 340, 6, 30],
+      [2000, 320, 4],
+      [2220, 240, 4],
+      [2420, 340, 6, 30],
+      [2720, 320, 4],
+      [2920, 240, 4],
+      [3440, 330, 4],
+      [3660, 250, 4],
+      [3820, 340, 5, 30],
+      [4100, 330, 4],
+      [4320, 250, 4],
+      [4560, 330, 4],
+      [4800, 440, 8, 26],
+    ]),
+    stars: [
+      { x: 580, y: 260 },
+      { x: 1360, y: 240 },
+      { x: 2240, y: 240 },
+      { x: 2940, y: 240 },
+      { x: 3680, y: 250 },
+      { x: 4340, y: 250 },
+      { x: 4900, y: 420 },
+    ],
+  },
+  {
+    name: "Sunset Hill",
+    worldW: 5600,
+    theme: {
+      sky: ["#2e1065", "#7c3aed", "#fb923c"],
+      cloud: "rgba(254,215,170,0.5)",
+      hill: "rgba(88,28,135,0.5)",
+      ground: "#0f766e",
+      grass: "#2dd4bf",
+      dirt: "#115e59",
+      platform: "#9a3412",
+      platformTop: "#fb923c",
+    },
+    eggman: {
+      startX: 500,
+      baseY: 300,
+      amp: 70,
+      speed: 0.0026,
+      bombCooldown: 1300,
+      hp: 8,
+      patrolLeft: 380,
+      patrolOmega: 0.000075,
+      weave: 160,
+    },
+    platforms: [
+      { x: 0, y: 480, w: 720, h: 60, type: "ground" },
+      { x: 820, y: 480, w: 580, h: 60, type: "ground" },
+      { x: 1540, y: 480, w: 560, h: 60, type: "ground" },
+      { x: 2220, y: 480, w: 580, h: 60, type: "ground" },
+      { x: 2960, y: 480, w: 640, h: 60, type: "ground" },
+      { x: 3720, y: 480, w: 580, h: 60, type: "ground" },
+      { x: 4420, y: 480, w: 1180, h: 60, type: "ground" },
+      { x: 280, y: 380, w: 120, h: 18, type: "platform" },
+      { x: 500, y: 300, w: 120, h: 18, type: "platform" },
+      { x: 640, y: 220, w: 110, h: 18, type: "platform" },
+      { x: 900, y: 340, w: 140, h: 18, type: "platform" },
+      { x: 1180, y: 260, w: 130, h: 18, type: "platform" },
+      { x: 1480, y: 300, w: 140, h: 18, type: "platform" },
+      { x: 1760, y: 220, w: 120, h: 18, type: "platform" },
+      { x: 2040, y: 360, w: 130, h: 18, type: "platform" },
+      { x: 2180, y: 260, w: 130, h: 18, type: "platform" },
+      { x: 2480, y: 200, w: 120, h: 18, type: "platform" },
+      { x: 2760, y: 340, w: 140, h: 18, type: "platform" },
+      { x: 2900, y: 240, w: 130, h: 18, type: "platform" },
+      { x: 3180, y: 180, w: 120, h: 18, type: "platform" },
+      { x: 3460, y: 300, w: 140, h: 18, type: "platform" },
+      { x: 3660, y: 220, w: 130, h: 18, type: "platform" },
+      { x: 3980, y: 360, w: 140, h: 18, type: "platform" },
+      { x: 4180, y: 260, w: 130, h: 18, type: "platform" },
+      { x: 4360, y: 320, w: 140, h: 18, type: "platform" },
+      { x: 4680, y: 280, w: 130, h: 18, type: "platform" },
+      { x: 4980, y: 360, w: 140, h: 18, type: "platform" },
+      { x: 660, y: 460, w: 40, h: 20, type: "spike" },
+      { x: 1320, y: 460, w: 50, h: 20, type: "spike" },
+      { x: 2020, y: 460, w: 50, h: 20, type: "spike" },
+      { x: 2720, y: 460, w: 50, h: 20, type: "spike" },
+      { x: 3520, y: 460, w: 50, h: 20, type: "spike" },
+      { x: 4220, y: 460, w: 50, h: 20, type: "spike" },
+      { x: 5080, y: 460, w: 60, h: 20, type: "spike" },
+      { x: 480, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 1680, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 2380, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 3140, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 4580, y: 462, w: 60, h: 18, type: "spring" },
+      { x: 5480, y: 360, w: 30, h: 120, type: "goal" },
+    ],
+    rings: makeRings([
+      [300, 340, 5],
+      [520, 260, 5],
+      [740, 340, 5, 30],
+      [1000, 300, 4],
+      [1200, 220, 4],
+      [1460, 300, 5, 30],
+      [1780, 180, 4],
+      [2140, 300, 5, 30],
+      [2500, 160, 4],
+      [2840, 280, 5, 30],
+      [3200, 140, 4],
+      [3640, 260, 5, 30],
+      [4000, 320, 4],
+      [4340, 280, 5, 30],
+      [4700, 240, 4],
+      [5200, 430, 8, 26],
+    ]),
+    stars: [
+      { x: 660, y: 180 },
+      { x: 1220, y: 220 },
+      { x: 1780, y: 180 },
+      { x: 2520, y: 160 },
+      { x: 3220, y: 140 },
+      { x: 3680, y: 180 },
+      { x: 5400, y: 400 },
+    ],
+  },
 ];
 
-// Eggman boss — flies in a sine pattern, drops bombs
-const EGGMAN = {
-  startX: 520, // visible on the first screen, to the right of the player
-  baseY: 320,
-  amp: 60,
-  speed: 0.0022,
-  bombCooldown: 1700,
-  hp: 6,
-  patrolLeft: 400,
-  patrolOmega: 0.00007,
-  weave: 180,
-};
+function makeLevelState(levelIndex, extras = {}) {
+  const L = LEVELS[levelIndex];
+  return {
+    player: {
+      x: 80, y: 420, w: 34, h: 40,
+      vx: 0, vy: 0, onGround: false, facing: 1,
+      rolling: false, invuln: 0, spin: 0,
+    },
+    rings: L.rings.map((r) => ({ ...r, taken: false })),
+    stars: L.stars.map((st) => ({ ...st, taken: false })),
+    eggman: {
+      x: L.eggman.startX, y: L.eggman.baseY, w: 64, h: 56,
+      hp: L.eggman.hp, alive: true, t: 0, lastBomb: 0, bombs: [], hitFlash: 0,
+    },
+    cam: 0,
+    particles: [],
+    explosions: [],
+    time: 0,
+    lastFrame: 0,
+    score: extras.score ?? 0,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Game component
@@ -115,34 +233,16 @@ export default function Game() {
   const canvasRef = useRef(null);
   const keysRef = useRef({});
   const rafRef = useRef(0);
-  const [hud, setHud] = useState({ rings: 0, stars: 0, lives: 3, score: 0 });
+  const [hud, setHud] = useState({ rings: 0, stars: 0, lives: 3, score: 0, level: 1 });
   const [status, setStatus] = useState("playing"); // playing | won | lost
   const statusRef = useRef("playing");
+  const levelRef = useRef(0);
   const [bestScore, setBestScore] = useState(() => {
     try { return Number(localStorage.getItem("sonic_best") || 0); } catch { return 0; }
   });
 
   // game state in a ref (avoid re-renders each frame)
-  const stateRef = useRef({
-    player: {
-      x: 80, y: 420, w: 34, h: 40,
-      vx: 0, vy: 0, onGround: false, facing: 1,
-      rolling: false, invuln: 0, // ms of invulnerability after hit
-      spin: 0, // visual spin while rolling
-    },
-    rings: RING_DEFS.map((r) => ({ ...r, taken: false })),
-    stars: STAR_DEFS.map((s) => ({ ...s, taken: false })),
-    eggman: {
-      x: EGGMAN.startX, y: EGGMAN.baseY, w: 64, h: 56,
-      hp: EGGMAN.hp, alive: true, t: 0, lastBomb: 0, bombs: [], hitFlash: 0,
-    },
-    cam: 0,
-    particles: [],
-    explosions: [],
-    time: 0,
-    lastFrame: 0,
-    score: 0,
-  });
+  const stateRef = useRef(makeLevelState(0));
 
   // ---------------------------------------------------------------- input ---
   useEffect(() => {
@@ -162,26 +262,20 @@ export default function Game() {
   }, []);
 
   const resetGame = useCallback(() => {
-    stateRef.current = {
-      player: {
-        x: 80, y: 420, w: 34, h: 40,
-        vx: 0, vy: 0, onGround: false, facing: 1,
-        rolling: false, invuln: 0, spin: 0,
-      },
-      rings: RING_DEFS.map((r) => ({ ...r, taken: false })),
-      stars: STAR_DEFS.map((s) => ({ ...s, taken: false })),
-      eggman: {
-        x: EGGMAN.startX, y: EGGMAN.baseY, w: 64, h: 56,
-        hp: EGGMAN.hp, alive: true, t: 0, lastBomb: 0, bombs: [], hitFlash: 0,
-      },
-      cam: 0,
-      particles: [],
-      explosions: [],
-      time: 0,
-      lastFrame: 0,
-      score: 0,
-    };
-    setHud({ rings: 0, stars: 0, lives: 3, score: 0 });
+    levelRef.current = 0;
+    stateRef.current = makeLevelState(0);
+    setHud({ rings: 0, stars: 0, lives: 3, score: 0, level: 1 });
+    statusRef.current = "playing";
+    setStatus("playing");
+  }, []);
+
+  const startNextLevel = useCallback(() => {
+    const next = levelRef.current + 1;
+    if (next >= LEVELS.length) return;
+    const score = stateRef.current.score;
+    levelRef.current = next;
+    stateRef.current = makeLevelState(next, { score });
+    setHud((h) => ({ ...h, level: next + 1, score }));
     statusRef.current = "playing";
     setStatus("playing");
   }, []);
@@ -239,6 +333,10 @@ export default function Game() {
     const update = (dt) => {
       const s = stateRef.current;
       if (statusRef.current !== "playing") return;
+      const L = LEVELS[levelRef.current];
+      const platforms = L.platforms;
+      const worldW = L.worldW;
+      const eggCfg = L.eggman;
       s.time += dt;
       const p = s.player;
       const keys = keysRef.current;
@@ -274,7 +372,7 @@ export default function Game() {
 
       // move + collide axis-separated
       p.x += p.vx;
-      for (const pl of PLATFORMS) {
+      for (const pl of platforms) {
         if (pl.type === "goal") continue;
         if (aabb(p, pl)) {
           if (p.vx > 0) p.x = pl.x - p.w;
@@ -283,11 +381,11 @@ export default function Game() {
         }
       }
       if (p.x < 0) p.x = 0;
-      if (p.x + p.w > WORLD_W) p.x = WORLD_W - p.w;
+      if (p.x + p.w > worldW) p.x = worldW - p.w;
 
       p.y += p.vy;
       p.onGround = false;
-      for (const pl of PLATFORMS) {
+      for (const pl of platforms) {
         if (pl.type === "goal") continue;
         if (aabb(p, pl)) {
           if (p.vy > 0) {
@@ -318,7 +416,7 @@ export default function Game() {
       prevRoll = p.rolling;
 
       // camera follows player
-      const targetCam = Math.max(0, Math.min(WORLD_W - VIEW_W, p.x - VIEW_W / 2 + p.w / 2));
+      const targetCam = Math.max(0, Math.min(worldW - VIEW_W, p.x - VIEW_W / 2 + p.w / 2));
       s.cam += (targetCam - s.cam) * 0.12;
 
       // rings
@@ -348,7 +446,7 @@ export default function Game() {
       }
 
       // goal
-      const goalPl = PLATFORMS.find((pl) => pl.type === "goal");
+      const goalPl = platforms.find((pl) => pl.type === "goal");
       if (goalPl && aabb(p, goalPl)) {
         if (s.eggman.alive) {
           // must defeat Eggman to finish — bounce player back
@@ -362,20 +460,20 @@ export default function Game() {
       const e = s.eggman;
       if (e.alive) {
         e.t += dt;
-        const left = EGGMAN.patrolLeft;
-        const right = WORLD_W - e.w - 20;
+        const left = eggCfg.patrolLeft;
+        const right = worldW - e.w - 20;
         const mid = (left + right) / 2;
         const range = (right - left) / 2;
-        const startPhase = Math.asin(Math.max(-1, Math.min(1, (EGGMAN.startX - mid) / range)));
+        const startPhase = Math.asin(Math.max(-1, Math.min(1, (eggCfg.startX - mid) / range)));
         e.x = mid
-          + Math.sin(e.t * EGGMAN.patrolOmega + startPhase) * range
-          + Math.sin(e.t * 0.0006) * EGGMAN.weave;
+          + Math.sin(e.t * eggCfg.patrolOmega + startPhase) * range
+          + Math.sin(e.t * 0.0006) * eggCfg.weave;
         e.x = Math.max(left, Math.min(right, e.x));
-        e.y = EGGMAN.baseY + Math.sin(e.t * EGGMAN.speed) * EGGMAN.amp;
+        e.y = eggCfg.baseY + Math.sin(e.t * eggCfg.speed) * eggCfg.amp;
         if (e.hitFlash > 0) e.hitFlash -= dt;
 
         // drop bombs
-        if (s.time - e.lastBomb > EGGMAN.bombCooldown) {
+        if (s.time - e.lastBomb > eggCfg.bombCooldown) {
           e.lastBomb = s.time;
           e.bombs.push({ x: e.x + e.w / 2 - 8, y: e.y + e.h, vy: 2, life: 4000 });
         }
@@ -391,7 +489,7 @@ export default function Game() {
             spawnExplosion(b.x + 8, b.y + 8);
           }
           // bomb hits ground -> big explosion
-          for (const pl of PLATFORMS) {
+          for (const pl of platforms) {
             if (pl.type === "ground" && aabb(bb, pl)) {
               b.life = 0;
               spawnExplosion(b.x + 8, pl.y);
@@ -489,20 +587,23 @@ export default function Game() {
     const draw = () => {
       const s = stateRef.current;
       const p = s.player;
+      const L = LEVELS[levelRef.current];
+      const worldW = L.worldW;
+      const theme = L.theme;
       ctx.clearRect(0, 0, VIEW_W, VIEW_H);
 
       // sky gradient
       const sky = ctx.createLinearGradient(0, 0, 0, VIEW_H);
-      sky.addColorStop(0, "#1e3a8a");
-      sky.addColorStop(0.5, "#3b82f6");
-      sky.addColorStop(1, "#93c5fd");
+      sky.addColorStop(0, theme.sky[0]);
+      sky.addColorStop(0.5, theme.sky[1]);
+      sky.addColorStop(1, theme.sky[2]);
       ctx.fillStyle = sky;
       ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
       // parallax clouds
-      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.fillStyle = theme.cloud;
       for (let i = 0; i < 6; i++) {
-        const cx = ((i * 300 - s.cam * 0.3) % (WORLD_W + 400) + WORLD_W + 400) % (WORLD_W + 400) - 200;
+        const cx = ((i * 300 - s.cam * 0.3) % (worldW + 400) + worldW + 400) % (worldW + 400) - 200;
         const cy = 60 + (i % 3) * 40;
         ctx.beginPath();
         ctx.arc(cx, cy, 26, 0, Math.PI * 2);
@@ -512,7 +613,7 @@ export default function Game() {
       }
 
       // parallax hills
-      ctx.fillStyle = "rgba(30,64,175,0.45)";
+      ctx.fillStyle = theme.hill;
       for (let i = 0; i < 12; i++) {
         const hx = i * 480 - (s.cam * 0.5) % 480;
         ctx.beginPath();
@@ -524,20 +625,20 @@ export default function Game() {
       ctx.translate(-Math.round(s.cam), 0);
 
       // platforms
-      for (const pl of PLATFORMS) {
+      for (const pl of L.platforms) {
         if (pl.type === "ground") {
-          ctx.fillStyle = "#15803d";
+          ctx.fillStyle = theme.ground;
           ctx.fillRect(pl.x, pl.y, pl.w, pl.h);
-          ctx.fillStyle = "#22c55e";
+          ctx.fillStyle = theme.grass;
           ctx.fillRect(pl.x, pl.y, pl.w, 10);
-          ctx.fillStyle = "#166534";
+          ctx.fillStyle = theme.dirt;
           for (let gx = pl.x; gx < pl.x + pl.w; gx += 24) {
             ctx.fillRect(gx, pl.y + 10, 2, pl.h - 10);
           }
         } else if (pl.type === "platform") {
-          ctx.fillStyle = "#a16207";
+          ctx.fillStyle = theme.platform;
           ctx.fillRect(pl.x, pl.y, pl.w, pl.h);
-          ctx.fillStyle = "#facc15";
+          ctx.fillStyle = theme.platformTop;
           ctx.fillRect(pl.x, pl.y, pl.w, 5);
         } else if (pl.type === "spike") {
           ctx.fillStyle = "#475569";
@@ -666,7 +767,7 @@ export default function Game() {
   // track analytics on win/lose
   useEffect(() => {
     if (status !== "playing") {
-      try { base44.analytics.track({ eventName: "sonic_level_end", properties: { result: status } }); } catch {}
+      try { base44.analytics.track({ eventName: "sonic_level_end", properties: { result: status, level: levelRef.current + 1 } }); } catch {}
     }
   }, [status]);
 
@@ -682,6 +783,7 @@ export default function Game() {
 
         {/* HUD */}
         <div className="flex flex-wrap items-center gap-4 mb-3 text-white">
+          <Badge label="Level" value={hud.level} color="text-sky-400" />
           <Badge label="Rings" value={hud.rings} color="text-amber-400" icon="ring" />
           <Badge label="Stars" value={hud.stars} color="text-orange-400" icon="star" />
           <Badge label="Lives" value={hud.lives} color="text-red-400" icon="heart" />
@@ -704,18 +806,30 @@ export default function Game() {
           {status !== "playing" && (
             <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center text-white text-center">
               <h2 className={`text-4xl font-extrabold mb-2 ${status === "won" ? "text-emerald-400" : "text-red-500"}`}>
-                {status === "won" ? "Level Complete!" : "Game Over"}
+                {status === "won"
+                  ? (hud.level < LEVELS.length ? `${LEVELS[hud.level - 1].name} Complete!` : "You Win!")
+                  : "Game Over"}
               </h2>
-              <p className="text-slate-300 mb-1">Score: {hud.score}</p>
+              <p className="text-slate-300 mb-1">Level {hud.level} · Score: {hud.score}</p>
               <p className="text-slate-300 mb-4">
                 Rings: {hud.rings} · Stars: {hud.stars}
               </p>
-              <button
-                onClick={resetGame}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition-colors"
-              >
-                Play Again
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {status === "won" && hud.level < LEVELS.length && (
+                  <button
+                    onClick={startNextLevel}
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold transition-colors"
+                  >
+                    Continue to Level {hud.level + 1}
+                  </button>
+                )}
+                <button
+                  onClick={resetGame}
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold transition-colors"
+                >
+                  Play Again
+                </button>
+              </div>
             </div>
           )}
         </div>

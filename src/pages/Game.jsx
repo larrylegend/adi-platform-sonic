@@ -32,11 +32,9 @@ const LEVELS = [
       ground: "#15803d",
       grass: "#22c55e",
       dirt: "#166534",
-      platform: "#166534",
-      platformTop: "#4ade80",
-      leaf: "#86efac",
-      vineDark: "#14532d",
-      platformStyle: "vine",
+      platform: "#a16207",
+      platformTop: "#facc15",
+      platformStyle: "dirt",
     },
     eggman: {
       startX: 520,
@@ -1061,6 +1059,13 @@ function drawLeaf(ctx, x, y, dir, color) {
 
 function drawFloatingPlatform(ctx, pl, theme) {
   const { x, y, w, h } = pl;
+  if (theme.platformStyle === "dirt") {
+    ctx.fillStyle = theme.platform;
+    ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = theme.platformTop;
+    ctx.fillRect(x, y, w, 5);
+    return;
+  }
   if (theme.platformStyle === "snow") {
     ctx.fillStyle = theme.platform;
     ctx.beginPath();
